@@ -9,5 +9,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["api", "scripts"]
+  "include": ["api", "scripts/migrate.ts"]
 }

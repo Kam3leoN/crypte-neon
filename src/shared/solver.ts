@@ -1,4 +1,4 @@
-import { at, DIRS, isSolid, key, type Dir } from './level';
+import { at, DIRS, isSolid, key, unkey, type Dir } from './level';
 
 export type Axis = 'h' | 'v';
 
@@ -169,6 +169,20 @@ export function analyze(map: readonly string[]): Analysis {
   if (start && exit) {
     if (!free.exitKey) issues.push({ level: 'error', message: 'La sortie est inatteignable depuis le départ.' });
     else if (!win) issues.push({ level: 'error', message: 'Les chauves-souris bloquent tous les chemins vers la sortie.' });
+  }
+  // Impasses atteignables : le joueur peut s'y glisser et n'avoir plus aucun chemin vers la sortie.
+  if (free.exitKey) {
+    for (const sk of stopCells) {
+      const [sx, sy] = unkey(sk);
+      const fromHere = bfs(map, [sx, sy], batCells);
+      if (!fromHere.exitKey) {
+        issues.push({
+          level: 'error',
+          message: `Impasse sans issue en (${sx},${sy}) : le joueur peut rester bloqué.`,
+          cell: [sx, sy],
+        });
+      }
+    }
   }
   for (const b of bats) {
     if (b.onStop) issues.push({ level: 'error', message: `Chauve-souris sur une case d'arrêt (${b.x},${b.y}) : le joueur ne pourrait pas l'éviter.`, cell: [b.x, b.y] });

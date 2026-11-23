@@ -9,6 +9,7 @@
     "build": "npm run typecheck && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.api.json",
+    "test:campaign": "tsx scripts/check-campaign.ts",
     "db:migrate": "tsx scripts/migrate.ts"
   },
   "engines": { "node": ">=20" },

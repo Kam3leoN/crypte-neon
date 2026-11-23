@@ -92,7 +92,8 @@ export function generate(opt: GenOptions): string[] | null {
     }
     const toMap = () => g.map((r) => r.join(''));
     let an = analyze(toMap());
-    if (!an.win) continue;
+    // Refuse les cartes où une case d'arrêt atteignable n'a plus de chemin vers la sortie (soft-lock).
+    if (!an.win || an.issues.some((i) => i.level === 'error')) continue;
 
     // objets sur les cases traversées
     const cand = [...an.passed].map((k) => k.split(',').map(Number) as [number, number]).filter(([a, c]) => g[c][a] === ' ');
@@ -117,9 +118,19 @@ export function generate(opt: GenOptions): string[] | null {
       g[c][a] = rnd() < 0.5 ? 'b' : 'v';
       const test = analyze(toMap());
       const bat = test.bats.find((b) => b.x === a && b.y === c);
-      if (test.win && test.starsReachable >= starsNeeded && test.coinsReachable >= an.coinsReachable && bat && bat.max - bat.min >= 1) { placed++; an = test; }
+      const ok =
+        test.win &&
+        !test.issues.some((i) => i.level === 'error') &&
+        test.starsReachable >= starsNeeded &&
+        test.coinsReachable >= an.coinsReachable &&
+        bat &&
+        bat.max - bat.min >= 1;
+      if (ok) { placed++; an = test; }
       else g[c][a] = ' ';
     }
+    // Revalide après placement des chauves-souris / objets.
+    an = analyze(toMap());
+    if (!an.win || an.issues.some((i) => i.level === 'error')) continue;
     return toMap();
   }
   return null;
