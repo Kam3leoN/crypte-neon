@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta name="theme-color" content="#07050f" />
+  <title>Crypte Néon</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div id="stage">
+    <canvas id="c"></canvas>
+
+    <div id="hud">
+      <span class="grow" id="hLevel"></span>
+      <span id="hStars"></span>
+      <span id="hDots"></span>
+      <span id="hCoins"></span>
+      <button id="btnPause" aria-label="Pause">II</button>
+    </div>
+
+    <div id="toast" role="status"></div>
+
+    <section class="screen" id="menu">
+      <button id="btnMute" class="icon" aria-label="Son"></button>
+      <div class="hero"></div>
+      <h1>CRYPTE<span>NÉON</span></h1>
+      <button class="big primary" id="btnPlay" data-default>JOUER</button>
+      <button class="big" id="btnLevels">NIVEAUX</button>
+      <button class="big" id="btnEndless">MODE INFINI</button>
+      <button class="big" id="btnBoard">CLASSEMENT</button>
+      <button class="big" id="btnHelp">COMMENT JOUER</button>
+      <label class="pseudo">PSEUDO <input id="pseudo" maxlength="16" placeholder="Anonyme" autocomplete="off" /></label>
+      <p class="info" id="menuInfo"></p>
+      <p class="info small" id="syncInfo"></p>
+    </section>
+
+    <section class="screen" id="levels">
+      <h2>NIVEAUX</h2>
+      <div id="grid"></div>
+      <button class="big" data-back>RETOUR</button>
+    </section>
+
+    <section class="screen" id="board">
+      <h2>CLASSEMENT INFINI</h2>
+      <ol id="boardList"></ol>
+      <button class="big" data-back data-default>RETOUR</button>
+    </section>
+
+    <section class="screen" id="help">
+      <h2>COMMENT JOUER</h2>
+      <ul class="help">
+        <li><b>Glisse</b> (doigt), <b>flèches / ZQSD</b> ou <b>croix / stick</b> de la manette : tu fonces jusqu'au prochain mur.</li>
+        <li>Ramasse les <b>points</b>, les <b>pièces</b> et les <b>3 étoiles</b>, puis atteins le <b>portail</b>.</li>
+        <li>Ne t'arrête jamais contre un <b>mur à pointes</b>.</li>
+        <li>Les <b>chauves-souris</b> patrouillent sur la ligne en pointillés : traverse leur couloir quand elles sont loin.</li>
+        <li>Les <b>pièges</b> clignotent avant de sortir.</li>
+        <li>Sur certains niveaux, la <b>lave monte</b> !</li>
+        <li><b>Manette</b> : A valider · B retour · Y recommencer · Menu pause.</li>
+        <li><b>Clavier</b> : R recommencer · Échap pause.</li>
+      </ul>
+      <button class="big" data-back data-default>RETOUR</button>
+    </section>
+
+    <section class="screen" id="pause">
+      <h2>PAUSE</h2>
+      <button class="big primary" id="btnResume" data-default>REPRENDRE</button>
+      <button class="big" id="btnRestart">RECOMMENCER</button>
+      <button class="big" data-back>MENU</button>
+    </section>
+
+    <section class="screen" id="win">
+      <h2 id="winTitle"></h2>
+      <div id="winStars"></div>
+      <p id="winInfo"></p>
+      <button class="big primary" id="btnNext" data-default>SUIVANT</button>
+      <button class="big" id="btnRetry">REJOUER</button>
+      <button class="big" data-back>MENU</button>
+    </section>
+
+    <section class="screen" id="over">
+      <h2 id="overTitle"></h2>
+      <p id="overInfo"></p>
+      <button class="big primary" id="btnAgain" data-default>REJOUER</button>
+      <button class="big" data-back>MENU</button>
+    </section>
+  </div>
+  <script type="module" src="/src/game/main.ts"></script>
+</body>
+</html>

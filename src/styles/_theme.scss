@@ -1,0 +1,33 @@
+$bg: #07050f;
+$bg-deep: #020106;
+$panel: #1b1036;
+$panel-2: #140c2a;
+$violet: #7b4dff;
+$violet-dark: #3d1f8a;
+$cyan: #22e6ff;
+$yellow: #ffe23d;
+$gold: #ffb800;
+$pink: #ff2d6f;
+$text-soft: #cbbcff;
+$text-dim: #b79bff;
+$pixel-font: 'Press Start 2P', monospace;
+
+@mixin neon-button($bg: $panel, $border: $violet, $shadow: $violet-dark, $color: #fff) {
+  font: inherit;
+  color: $color;
+  background: $bg;
+  border: 3px solid $border;
+  border-radius: 8px;
+  box-shadow: 0 4px 0 $shadow;
+  cursor: pointer;
+  transition: transform 0.08s, border-color 0.15s;
+
+  &:hover { border-color: $cyan; }
+  &:active { transform: translateY(3px); box-shadow: 0 1px 0 $shadow; }
+  &:focus { outline: none; }
+  &:focus-visible, &.nav-focus {
+    outline: 3px solid $cyan;
+    outline-offset: 3px;
+    box-shadow: 0 4px 0 $shadow, 0 0 18px rgba($cyan, 0.7);
+  }
+}

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Crypte Néon · Administration</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">CRYPTE <span>NÉON</span> <small>ADMIN</small></div>
+    <div id="stats" class="stats"></div>
+    <a class="btn ghost" href="/" target="_blank" rel="noopener">Voir le jeu ↗</a>
+    <button class="btn ghost" id="btnLogout">Déconnexion</button>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="side-head">
+        <h3>Niveaux</h3>
+        <button class="btn primary sm" id="btnNew">+ Nouveau</button>
+      </div>
+      <ul id="levelList" class="level-list"></ul>
+      <button class="btn sm wide" id="btnImport" title="Ajoute les 12 niveaux de la campagne d'origine">Importer la campagne par défaut</button>
+      <p class="hint">Seuls les niveaux <b>publiés</b> apparaissent dans le jeu, dans l'ordre de cette liste.</p>
+    </aside>
+
+    <main class="workspace">
+      <div class="toolbar">
+        <div id="palette" class="palette"></div>
+        <div class="tool-actions">
+          <button class="btn sm" id="btnUndo" title="Annuler (Ctrl+Z)">↶</button>
+          <button class="btn sm" id="btnRedo" title="Rétablir (Ctrl+Y)">↷</button>
+          <label class="zoom">Zoom <input type="range" id="zoom" min="16" max="56" step="4" value="32" /></label>
+        </div>
+      </div>
+      <div class="canvas-wrap" id="canvasWrap"><canvas id="ed"></canvas></div>
+      <div class="statusbar"><span id="status">Clic gauche : peindre · Clic droit : mur · 1-0 : outils</span><span id="cursor"></span></div>
+    </main>
+
+    <aside class="props">
+      <section>
+        <h4>Niveau <span id="dirty" class="dirty" hidden>● non enregistré</span></h4>
+        <label>Nom <input id="fName" maxlength="60" /></label>
+        <label>Lave <span class="val" id="fLavaVal"></span>
+          <input type="range" id="fLava" min="0" max="2" step="0.05" />
+        </label>
+        <label class="check"><input type="checkbox" id="fPublished" /> Publié dans le jeu</label>
+        <div class="row">
+          <button class="btn primary" id="btnSave">Enregistrer</button>
+          <button class="btn accent" id="btnTest">▶ Tester</button>
+        </div>
+        <div class="row">
+          <button class="btn sm" id="btnDuplicate">Dupliquer</button>
+          <button class="btn sm danger" id="btnDelete">Supprimer</button>
+        </div>
+      </section>
+
+      <section>
+        <h4>Validation</h4>
+        <div id="summary" class="summary"></div>
+        <ul id="issues" class="issues"></ul>
+      </section>
+
+      <section>
+        <h4>Calques</h4>
+        <label class="check"><input type="checkbox" id="ovStops" checked /> Cases d'arrêt</label>
+        <label class="check"><input type="checkbox" id="ovDots" /> Zone parcourue (points)</label>
+        <label class="check"><input type="checkbox" id="ovPatrol" checked /> Patrouilles</label>
+        <label class="check"><input type="checkbox" id="ovSolution" /> Solution</label>
+        <label class="check"><input type="checkbox" id="ovGrid" checked /> Grille</label>
+      </section>
+
+      <section>
+        <h4>Taille <span class="val" id="sizeVal"></span></h4>
+        <div class="resize">
+          <span>Lignes</span>
+          <button class="btn xs" data-resize="top:+1">+ haut</button>
+          <button class="btn xs" data-resize="top:-1">− haut</button>
+          <button class="btn xs" data-resize="bottom:+1">+ bas</button>
+          <button class="btn xs" data-resize="bottom:-1">− bas</button>
+          <span>Colonnes</span>
+          <button class="btn xs" data-resize="left:+1">+ gauche</button>
+          <button class="btn xs" data-resize="left:-1">− gauche</button>
+          <button class="btn xs" data-resize="right:+1">+ droite</button>
+          <button class="btn xs" data-resize="right:-1">− droite</button>
+        </div>
+      </section>
+
+      <section>
+        <h4>Générateur</h4>
+        <div class="row">
+          <label class="inline">L <input type="number" id="gW" min="7" max="25" value="11" /></label>
+          <label class="inline">H <input type="number" id="gH" min="10" max="300" value="22" /></label>
+        </div>
+        <label>Difficulté
+          <select id="gDiff">
+            <option value="facile">Facile</option>
+            <option value="moyen" selected>Moyen</option>
+            <option value="difficile">Difficile</option>
+          </select>
+        </label>
+        <div class="row">
+          <label class="inline">Graine <input type="number" id="gSeed" value="1" /></label>
+          <button class="btn xs" id="btnSeed" title="Graine aléatoire">🎲</button>
+        </div>
+        <button class="btn wide" id="btnGenerate">Générer (remplace la carte)</button>
+      </section>
+    </aside>
+  </div>
+
+  <div class="modal" id="login">
+    <form class="card" id="loginForm">
+      <div class="brand big">CRYPTE <span>NÉON</span></div>
+      <p>Espace administration</p>
+      <input type="password" id="loginPass" placeholder="Mot de passe" autocomplete="current-password" required />
+      <button class="btn primary wide" type="submit">Entrer</button>
+      <p class="error" id="loginError"></p>
+    </form>
+  </div>
+
+  <div class="modal" id="testModal">
+    <div class="test-box">
+      <div class="test-head">
+        <span id="testTitle">Test</span>
+        <span class="test-hud" id="testHud"></span>
+        <button class="btn sm" id="btnTestRestart">↻ R</button>
+        <button class="btn sm" id="btnTestClose">✕ Échap</button>
+      </div>
+      <div class="test-stage"><canvas id="testCanvas"></canvas><div class="test-msg" id="testMsg"></div></div>
+      <p class="hint">Flèches / ZQSD / manette · R recommencer · Échap fermer</p>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script type="module" src="/src/admin/main.ts"></script>
+</body>
+</html>

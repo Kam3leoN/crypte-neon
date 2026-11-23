@@ -1,0 +1,27 @@
+{
+  "name": "crypte-neon",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Jeu de labyrinthe à glissement néon avec éditeur de niveaux (Vite + TypeScript + SCSS + Neon)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.api.json",
+    "db:migrate": "tsx scripts/migrate.ts"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.6.0",
+    "@types/node": "^26.6.6",
+    "@vercel/node": "^32.0.0",
+    "sass": "^1.108.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}
