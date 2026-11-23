@@ -23,6 +23,13 @@ export function route(methods: Partial<Record<'GET' | 'POST' | 'PUT' | 'PATCH' |
     } catch (e) {
       if (e instanceof HttpError) return res.status(e.status).json({ error: e.message });
       console.error(e);
+      const msg = e instanceof Error ? e.message : '';
+      // Aide au diagnostic sans exposer la chaîne de connexion.
+      if (/password authentication failed|ENOTFOUND|getaddrinfo|connection|DATABASE_URL|NeonDbError/i.test(msg)) {
+        return res.status(500).json({
+          error: 'Base Neon injoignable. Vérifie DATABASE_URL (URL pooled) sur Vercel.',
+        });
+      }
       return res.status(500).json({ error: 'Erreur serveur' });
     }
   };

@@ -14,6 +14,9 @@ function getSql(): Sql {
   if (!client) {
     const url = process.env.DATABASE_URL;
     if (!url) throw new HttpError(500, 'DATABASE_URL n\'est pas configurée sur le serveur');
+    if (/ep-xxxx|user:password@/i.test(url)) {
+      throw new HttpError(500, 'DATABASE_URL est encore un placeholder. Colle l\'URL pooled Neon réelle sur Vercel.');
+    }
     client = neon(url) as unknown as Sql;
   }
   return client;
