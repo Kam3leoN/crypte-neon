@@ -78,18 +78,26 @@ function refreshMenu(): void {
 
 function buildLevelGrid(): void {
   const el = $('grid');
+  const total = levels.length;
+  $('lvlCount').textContent = `· ${total}`;
   el.innerHTML = '';
   levels.forEach((lvl, i) => {
     const unlocked = i === 0 || save.completed(levels[i - 1].id);
     const st = save.stars(lvl.id);
     const b = document.createElement('button');
     b.className = `lv${unlocked ? '' : ' lock'}`;
-    b.innerHTML = `<span class="n">${unlocked ? i + 1 : '🔒'}</span><span class="s">${[0, 1, 2].map((k) => (k < st ? '★' : '☆')).join('')}</span>`;
-    b.title = lvl.name;
+    b.innerHTML =
+      `<span class="ico" aria-hidden="true">${unlocked ? '◆' : '🔒'}</span>` +
+      `<span class="s">${[0, 1, 2].map((k) => (k < st ? '★' : '☆')).join('')}</span>` +
+      `<span class="num">${i + 1}<small>/${total}</small></span>`;
+    b.title = `${i + 1} / ${total} — ${lvl.name}`;
+    b.setAttribute('aria-label', `Niveau ${i + 1} sur ${total}${unlocked ? '' : ' (verrouillé)'}`);
     if (unlocked) b.onclick = () => startLevel(i);
     else b.disabled = true;
     el.appendChild(b);
   });
+  // Remonte en haut à chaque ouverture pour retrouver le début de la liste.
+  $('levelsScroll').scrollTop = 0;
 }
 
 async function buildBoard(): Promise<void> {

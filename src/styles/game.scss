@@ -84,6 +84,31 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   -webkit-overflow-scrolling: touch;
 
   &.show { display: flex; }
+
+  /* Liste longue : titre + bouton fixes, grille scrollable au milieu. */
+  &.screen--levels {
+    justify-content: flex-start;
+    overflow: hidden;
+    gap: 10px;
+    h2 { flex: 0 0 auto; margin: 0; .lvl-count { color: $text-dim; font-size: 11px; } }
+    .levels-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+      max-width: 360px;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      padding: 4px 6px 12px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba($violet, 0.8) transparent;
+      &::-webkit-scrollbar { width: 6px; }
+      &::-webkit-scrollbar-thumb { background: rgba($violet, 0.65); border-radius: 3px; }
+    }
+    > .big { flex: 0 0 auto; }
+  }
 }
 
 h1 {
@@ -117,16 +142,25 @@ button.icon { position: absolute; top: 12px; right: 12px; font-size: 18px; backg
 
 #grid {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-  width: 100%; max-width: 340px;
+  width: 100%;
 }
 
 .lv {
   @include neon-button;
   aspect-ratio: 1;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  .n { font-size: 14px; }
-  .s { font-size: 9px; color: #fff27a; }
-  &.lock { opacity: 0.4; cursor: default; }
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  padding: 6px 4px;
+  .ico { font-size: 12px; line-height: 1; color: $cyan; }
+  .s { font-size: 9px; color: #fff27a; letter-spacing: 1px; line-height: 1; }
+  .num {
+    font-size: 10px; color: #fff; line-height: 1.2;
+    small { color: $text-dim; font-size: 8px; }
+  }
+  &.lock {
+    opacity: 0.55; cursor: default;
+    .ico { color: $text-dim; }
+    .num { color: $text-soft; }
+  }
 }
 
 .st {
