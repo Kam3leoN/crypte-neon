@@ -2,6 +2,9 @@ import { analyze, type Axis } from '../shared/solver';
 import { isSolid, key, type Dir, type LevelData } from '../shared/level';
 import { COLORS } from './render';
 import { SFX } from './audio';
+import { isTouch } from '../pwa';
+
+const FX = isTouch ? 0.45 : 1;
 
 export type GameMode = 'level' | 'endless' | 'test';
 
@@ -197,14 +200,16 @@ export class Game {
   }
 
   private burst(x: number, y: number, col: string, n: number): void {
-    for (let i = 0; i < n; i++) {
+    const count = Math.max(2, Math.round(n * FX));
+    for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2, s = 2 + Math.random() * 6;
       this.particles.push({ x: x + 0.5, y: y + 0.5, vx: Math.cos(a) * s, vy: Math.sin(a) * s, g: 6, life: 0.4 + Math.random() * 0.5, col, sz: 0.12 });
     }
   }
 
   private dust(x: number, y: number, dx: number, dy: number): void {
-    for (let i = 0; i < 6; i++) {
+    const n = Math.max(2, Math.round(6 * FX));
+    for (let i = 0; i < n; i++) {
       this.particles.push({
         x: x + 0.5 + dx * 0.45, y: y + 0.5 + dy * 0.45,
         vx: (-dx + (Math.random() - 0.5) * 1.5) * 3, vy: (-dy + (Math.random() - 0.5) * 1.5) * 3,

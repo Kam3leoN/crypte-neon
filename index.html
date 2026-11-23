@@ -2,10 +2,17 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
   <meta name="theme-color" content="#07050f" />
+  <meta name="description" content="Jeu de labyrinthe à glissement néon — jouable hors ligne en PWA." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Crypte Néon" />
   <title>Crypte Néon</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
 </head>
@@ -32,6 +39,7 @@
       <button class="big" id="btnEndless">MODE INFINI</button>
       <button class="big" id="btnBoard">CLASSEMENT</button>
       <button class="big" id="btnHelp">COMMENT JOUER</button>
+      <button class="big" id="btnInstall" hidden>INSTALLER L'APP</button>
       <label class="pseudo">PSEUDO <input id="pseudo" maxlength="16" placeholder="Anonyme" autocomplete="off" /></label>
       <p class="info" id="menuInfo"></p>
       <p class="info small" id="syncInfo"></p>

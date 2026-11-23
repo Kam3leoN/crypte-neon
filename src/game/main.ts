@@ -6,11 +6,24 @@ import { SaveStore, loadLevels } from './storage';
 import { initAudio, isMuted, setMuted, SFX } from './audio';
 import { endlessLevel } from '../shared/generator';
 import { DOWN, LEFT, RIGHT, UP, type Dir, type LevelData } from '../shared/level';
+import {
+  armEdgeGuards,
+  canInstall,
+  initPwa,
+  isStandalone,
+  isTouch,
+  lockBackGesture,
+  promptInstall,
+  requestGameFullscreen,
+} from '../pwa';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const DIR_OF: Partial<Record<Action, Dir>> = { up: UP, down: DOWN, left: LEFT, right: RIGHT };
 
+initPwa();
+
 const canvas = $<HTMLCanvasElement>('c');
+const stage = $('stage');
 const renderer = new Renderer(canvas);
 const save = new SaveStore();
 let levels: LevelData[] = [];
@@ -18,8 +31,27 @@ let levelIndex = 0;
 let game: Game | null = null;
 let paused = false;
 let screen: string | null = 'menu';
+let unlockBack: (() => void) | null = null;
+let disarmEdges: (() => void) | null = null;
 
 setMuted(save.data.muted);
+
+function enterPlayMode(): void {
+  unlockBack?.();
+  disarmEdges?.();
+  unlockBack = lockBackGesture(() => {
+    if (game && !screen) togglePause();
+  });
+  disarmEdges = armEdgeGuards(stage);
+  if (isTouch || isStandalone) void requestGameFullscreen(document.documentElement);
+}
+
+function leavePlayMode(): void {
+  unlockBack?.();
+  unlockBack = null;
+  disarmEdges?.();
+  disarmEdges = null;
+}
 
 // ---------- écrans ----------
 function showScreen(id: string | null): void {
@@ -123,6 +155,7 @@ function startLevel(i: number): void {
   game = new Game(levels[i], 'level', events);
   paused = false;
   renderer.snapCamera(game);
+  enterPlayMode();
   showScreen(null);
 }
 
@@ -130,6 +163,7 @@ function startEndless(): void {
   game = new Game(endlessLevel(), 'endless', events);
   paused = false;
   renderer.snapCamera(game);
+  enterPlayMode();
   showScreen(null);
 }
 
@@ -142,7 +176,14 @@ function togglePause(): void {
 function toMenu(): void {
   paused = false;
   game = null;
+  leavePlayMode();
   showScreen('menu');
+}
+
+function refreshInstallBtn(): void {
+  const btn = $('btnInstall');
+  btn.hidden = !(canInstall() || (!isStandalone && isTouch));
+  if (isStandalone) btn.hidden = true;
 }
 
 // ---------- navigation manette / clavier dans les menus ----------
@@ -233,6 +274,18 @@ click('btnNext', () => startLevel(levelIndex + 1));
 click('btnRetry', () => startLevel(levelIndex));
 click('btnAgain', startEndless);
 click('btnMute', () => { setMuted(!isMuted()); save.setMuted(isMuted()); refreshMenu(); });
+click('btnInstall', () => {
+  void (async () => {
+    const ok = await promptInstall();
+    if (ok) { toast('App installée ✔'); refreshInstallBtn(); return; }
+    if (isTouch) {
+      toast('Safari : Partager → Sur l’écran d’accueil');
+    } else {
+      toast('Utilise le menu du navigateur → Installer l’application');
+    }
+  })();
+});
+document.addEventListener('crypte-installable', () => refreshInstallBtn());
 document.querySelectorAll<HTMLElement>('[data-back]').forEach((b) => b.addEventListener('click', () => {
   if (screen === 'levels' || screen === 'help' || screen === 'board') showScreen('menu'); else toMenu();
 }));
@@ -253,8 +306,13 @@ function loop(now: number): void {
 }
 
 window.addEventListener('resize', () => renderer.resize());
+window.addEventListener('orientationchange', () => setTimeout(() => renderer.resize(), 200));
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && game && !screen) togglePause();
+});
 renderer.resize();
 $('menuInfo').textContent = 'Chargement…';
+refreshInstallBtn();
 showScreen('menu');
 requestAnimationFrame(loop);
 

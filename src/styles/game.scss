@@ -4,13 +4,17 @@
 
 html, body {
   height: 100%;
+  height: 100dvh;
   background: $bg-deep;
   overflow: hidden;
+  overscroll-behavior: none;
   font-family: $pixel-font;
   color: #fff;
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 #stage {
@@ -21,14 +25,25 @@ html, body {
   background: $bg;
   box-shadow: 0 0 60px #2a1060;
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  /* Plein écran mobile / PWA : pas de bandeaux latéraux */
+  @media (max-width: 640px), (display-mode: standalone), (display-mode: fullscreen) {
+    max-width: none;
+    width: 100%;
+    box-shadow: none;
+  }
 }
 
-canvas { display: block; touch-action: none; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
 #hud {
   position: absolute; inset: 0 0 auto 0;
   display: none; align-items: center; gap: 10px;
   padding: 10px 12px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  padding-left: calc(12px + env(safe-area-inset-left, 0px));
+  padding-right: calc(12px + env(safe-area-inset-right, 0px));
   font-size: 10px;
   background: linear-gradient(rgba($bg, 0.93), rgba($bg, 0));
   pointer-events: none;
@@ -59,9 +74,14 @@ canvas { display: block; touch-action: none; }
 .screen {
   position: absolute; inset: 0; z-index: 3;
   display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
-  padding: 24px; text-align: center;
+  padding: 24px;
+  padding-top: calc(24px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  text-align: center;
   background: rgba($bg, 0.84);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 
   &.show { display: flex; }
 }

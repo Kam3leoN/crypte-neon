@@ -46,16 +46,29 @@ export class InputManager {
       e.preventDefault();
       this.onAction(a, 'key', e.repeat);
     });
-    swipeTarget.addEventListener('pointerdown', (e) => { if (this.enabled) this.touchStart = [e.clientX, e.clientY]; });
+    swipeTarget.addEventListener('pointerdown', (e) => {
+      if (!this.enabled) return;
+      // Ignore les touches trop près du bord (geste système « retour »).
+      const edge = 18;
+      if (e.clientX < edge || e.clientX > window.innerWidth - edge) return;
+      this.touchStart = [e.clientX, e.clientY];
+      try { swipeTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    });
     swipeTarget.addEventListener('pointermove', (e) => {
       if (!this.touchStart) return;
       const dx = e.clientX - this.touchStart[0], dy = e.clientY - this.touchStart[1];
-      if (Math.hypot(dx, dy) < 24) return;
+      if (Math.hypot(dx, dy) < 28) return;
       this.onAction(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up', 'touch', false);
       this.touchStart = null;
     });
     window.addEventListener('pointerup', () => (this.touchStart = null));
-    swipeTarget.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+    swipeTarget.addEventListener('touchmove', (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+    swipeTarget.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      if (!t) return;
+      const edge = 18;
+      if ((t.clientX < edge || t.clientX > window.innerWidth - edge) && e.cancelable) e.preventDefault();
+    }, { passive: false });
 
     window.addEventListener('gamepadconnected', (e) => this.onPadChange(cleanName(e.gamepad.id)));
     window.addEventListener('gamepaddisconnected', () => {

@@ -1,4 +1,8 @@
 import type { Game } from './engine';
+import { isTouch } from '../pwa';
+
+/** Qualité réduite sur tactile : ombres canvas = très coûteux sur GPU mobile. */
+const LOW_FX = isTouch;
 
 export const COLORS = {
   bg: '#07050f',
@@ -34,15 +38,14 @@ export function drawWalls(ctx: Ctx, grid: readonly (readonly string[] | string)[
     if (!solid(c)) continue;
     const open = (dx: number, dy: number) => { const v = cell(x + dx, y + dy); return v !== undefined && !solid(v); };
     ctx.strokeStyle = y % 2 === 0 ? COLORS.edge : COLORS.edge2;
-    ctx.shadowColor = ctx.strokeStyle;
-    ctx.shadowBlur = 6;
+    if (!LOW_FX) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 6; }
     ctx.beginPath();
     if (open(0, -1)) { ctx.moveTo(x * T, y * T + 1); ctx.lineTo(x * T + T, y * T + 1); }
     if (open(0, 1)) { ctx.moveTo(x * T, y * T + T - 1); ctx.lineTo(x * T + T, y * T + T - 1); }
     if (open(-1, 0)) { ctx.moveTo(x * T + 1, y * T); ctx.lineTo(x * T + 1, y * T + T); }
     if (open(1, 0)) { ctx.moveTo(x * T + T - 1, y * T); ctx.lineTo(x * T + T - 1, y * T + T); }
     ctx.stroke();
-    ctx.shadowBlur = 0;
+    if (!LOW_FX) ctx.shadowBlur = 0;
     if (c === 'S') {
       ctx.fillStyle = COLORS.spike;
       for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]] as const) if (open(dx, dy)) drawSpikes(ctx, x, y, dx, dy, T);
@@ -68,9 +71,10 @@ export function drawSpikes(ctx: Ctx, x: number, y: number, dx: number, dy: numbe
 export function drawExit(ctx: Ctx, x: number, y: number, T: number, t: number): void {
   const cx = x * T + T / 2, cy = y * T + T / 2, p = (Math.sin(t * 4) + 1) / 2;
   ctx.save();
-  ctx.shadowColor = COLORS.edge2; ctx.shadowBlur = 12 + p * 10;
+  if (!LOW_FX) { ctx.shadowColor = COLORS.edge2; ctx.shadowBlur = 12 + p * 10; }
   ctx.strokeStyle = COLORS.edge2; ctx.lineWidth = T * 0.08;
-  for (let i = 0; i < 3; i++) {
+  const rings = LOW_FX ? 1 : 3;
+  for (let i = 0; i < rings; i++) {
     const k = (t * 0.8 + i / 3) % 1;
     ctx.globalAlpha = 1 - k;
     ctx.beginPath(); ctx.arc(cx, cy, T * (0.15 + k * 0.3), 0, Math.PI * 2); ctx.stroke();
@@ -84,7 +88,8 @@ export function drawExit(ctx: Ctx, x: number, y: number, T: number, t: number): 
 export function drawStar(ctx: Ctx, cx: number, cy: number, r: number, t: number): void {
   ctx.save();
   ctx.translate(cx, cy); ctx.rotate(Math.sin(t * 2) * 0.2);
-  ctx.shadowColor = COLORS.star; ctx.shadowBlur = 10; ctx.fillStyle = COLORS.star;
+  if (!LOW_FX) { ctx.shadowColor = COLORS.star; ctx.shadowBlur = 10; }
+  ctx.fillStyle = COLORS.star;
   ctx.beginPath();
   for (let i = 0; i < 10; i++) {
     const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r * 0.45 : r;
@@ -144,9 +149,10 @@ export function drawPlayer(ctx: Ctx, cx: number, cy: number, T: number, face: re
   else if (squash > 0) { const s = squash * 0.3; if (fx) { w *= 1 - s; h *= 1 + s; } else if (fy) { h *= 1 - s; w *= 1 + s; } }
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.shadowColor = COLORS.player; ctx.shadowBlur = 14; ctx.fillStyle = COLORS.player;
+  if (!LOW_FX) { ctx.shadowColor = COLORS.player; ctx.shadowBlur = 14; }
+  ctx.fillStyle = COLORS.player;
   roundRect(ctx, -w / 2, -h / 2, w, h, T * 0.22); ctx.fill();
-  ctx.shadowBlur = 0;
+  if (!LOW_FX) ctx.shadowBlur = 0;
   const ex = fx * T * 0.1, ey = fy * T * 0.1;
   ctx.fillStyle = '#1a0b2e';
   ctx.fillRect(-T * 0.2 + ex, -T * 0.12 + ey, T * 0.13, T * 0.2);
@@ -176,22 +182,49 @@ export class Renderer {
   private vh = 0;
   private camY = 0;
   private menuT = 0;
+  /** Cache des murs (statique pendant une partie) — évite de redessiner ~centaines de strokes / frame. */
+  private wallLayer: HTMLCanvasElement | null = null;
+  private wallKey = '';
 
   constructor(private readonly canvas: HTMLCanvasElement) {
-    this.ctx = canvas.getContext('2d')!;
+    this.ctx = canvas.getContext('2d', { alpha: false })!;
   }
 
   resize(): void {
     const parent = this.canvas.parentElement!;
     this.vw = parent.clientWidth; this.vh = parent.clientHeight;
-    this.dpr = Math.min(2, window.devicePixelRatio || 1);
-    this.canvas.width = this.vw * this.dpr; this.canvas.height = this.vh * this.dpr;
+    // Cap DPR sur mobile : 3x pixels tue le GPU.
+    this.dpr = Math.min(LOW_FX ? 1.25 : 2, window.devicePixelRatio || 1);
+    this.canvas.width = Math.max(1, Math.floor(this.vw * this.dpr));
+    this.canvas.height = Math.max(1, Math.floor(this.vh * this.dpr));
     this.canvas.style.width = `${this.vw}px`; this.canvas.style.height = `${this.vh}px`;
+    this.wallKey = ''; // invalide le cache (tile size peut changer)
   }
 
-  snapCamera(game: Game): void { this.camY = this.cameraTarget(game, this.tileFor(game)); }
+  snapCamera(game: Game): void {
+    this.camY = this.cameraTarget(game, this.tileFor(game));
+    this.wallKey = '';
+  }
 
-  private tileFor(game: Game): number { return Math.max(8, Math.floor(Math.min(this.vw / game.W, 64))); }
+  private tileFor(game: Game): number {
+    const cap = LOW_FX ? 48 : 64;
+    return Math.max(8, Math.floor(Math.min(this.vw / game.W, cap)));
+  }
+
+  private ensureWalls(game: Game, T: number): HTMLCanvasElement {
+    const key = `${game.W}x${game.H}:${T}:${game.level.id}`;
+    if (this.wallLayer && this.wallKey === key) return this.wallLayer;
+    const layer = document.createElement('canvas');
+    layer.width = Math.max(1, game.W * T);
+    layer.height = Math.max(1, game.H * T);
+    const lctx = layer.getContext('2d')!;
+    lctx.fillStyle = COLORS.bg;
+    lctx.fillRect(0, 0, layer.width, layer.height);
+    drawWalls(lctx, game.grid, 0, game.H - 1, T);
+    this.wallLayer = layer;
+    this.wallKey = key;
+    return layer;
+  }
 
   private cameraTarget(game: Game, T: number): number {
     const viewT = this.vh / T;
@@ -215,7 +248,10 @@ export class Renderer {
     const y0 = Math.max(0, Math.floor(this.camY) - 1);
     const y1 = Math.min(game.H - 1, Math.ceil(this.camY + this.vh / T) + 1);
 
-    drawWalls(ctx, game.grid, y0, y1, T);
+    const walls = this.ensureWalls(game, T);
+    const sy0 = Math.max(0, y0 * T - 2);
+    const sy1 = Math.min(walls.height, (y1 + 1) * T + 2);
+    ctx.drawImage(walls, 0, sy0, walls.width, sy1 - sy0, 0, sy0, walls.width, sy1 - sy0);
     for (let y = y0; y <= y1; y++) for (let x = 0; x < game.W; x++) if (game.grid[y][x] === 'E') drawExit(ctx, x, y, T, game.t);
 
     ctx.fillStyle = COLORS.dot;
@@ -265,10 +301,18 @@ export class Renderer {
 
   private drawMenuBg(dt: number): void {
     this.menuT += dt;
-    const T = 28, { ctx } = this;
-    for (let y = -1; y < this.vh / T + 1; y++) for (let x = 0; x < this.vw / T + 1; x++) {
+    const T = LOW_FX ? 40 : 28, { ctx } = this;
+    const cols = Math.ceil(this.vw / T) + 1;
+    const rows = Math.ceil(this.vh / T) + 1;
+    // Sur mobile : une case sur deux + pas de recalcul trig intensif chaque pixel.
+    const step = LOW_FX ? 2 : 1;
+    for (let y = -1; y < rows; y += step) for (let x = 0; x < cols; x += step) {
       const v = Math.sin(x * 1.3 + y * 0.7) + Math.cos(x * 0.4 - y * 1.1);
-      if (v > 0.6) { ctx.fillStyle = '#140c2a'; ctx.fillRect(x * T, ((y * T + this.menuT * 20) % (this.vh + T)) - T, T, T); }
+      if (v > 0.6) {
+        ctx.fillStyle = '#140c2a';
+        const yy = ((y * T + this.menuT * 20) % (this.vh + T)) - T;
+        ctx.fillRect(x * T, yy, T * step, T * step);
+      }
     }
   }
 }
