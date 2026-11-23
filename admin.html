@@ -32,13 +32,16 @@
       <div class="toolbar">
         <div id="palette" class="palette"></div>
         <div class="tool-actions">
+          <button class="btn sm accent" id="btnGenQuick" title="Générer une carte aléatoire (G)">🎲 Aléatoire</button>
           <button class="btn sm" id="btnUndo" title="Annuler (Ctrl+Z)">↶</button>
           <button class="btn sm" id="btnRedo" title="Rétablir (Ctrl+Y)">↷</button>
           <label class="zoom">Zoom <input type="range" id="zoom" min="16" max="56" step="4" value="32" /></label>
         </div>
       </div>
-      <div class="canvas-wrap" id="canvasWrap"><canvas id="ed"></canvas></div>
-      <div class="statusbar"><span id="status">Clic gauche : peindre · Clic droit : mur · 1-0 : outils</span><span id="cursor"></span></div>
+      <div class="canvas-wrap" id="canvasWrap" title="Molette / barre d'espace + glisser / clic molette : déplacer la vue">
+        <div class="canvas-stage" id="canvasStage"><canvas id="ed"></canvas></div>
+      </div>
+      <div class="statusbar"><span id="status">Clic : poser / recliquer : enlever · Droit : mur · Espace+glisser : déplacer · 1-0 : outils · G : aléatoire</span><span id="cursor"></span></div>
     </main>
 
     <aside class="props">
@@ -92,6 +95,7 @@
 
       <section>
         <h4>Générateur</h4>
+        <p class="hint">Crée une carte soluble au hasard — tu n’as plus qu’à la personnaliser.</p>
         <div class="row">
           <label class="inline">L <input type="number" id="gW" min="7" max="25" value="11" /></label>
           <label class="inline">H <input type="number" id="gH" min="10" max="300" value="22" /></label>
@@ -105,9 +109,10 @@
         </label>
         <div class="row">
           <label class="inline">Graine <input type="number" id="gSeed" value="1" /></label>
-          <button class="btn xs" id="btnSeed" title="Graine aléatoire">🎲</button>
+          <button class="btn xs" id="btnSeed" title="Nouvelle graine aléatoire">🎲</button>
         </div>
-        <button class="btn wide" id="btnGenerate">Générer (remplace la carte)</button>
+        <label class="check"><input type="checkbox" id="gNewSeed" checked /> Nouvelle graine à chaque génération</label>
+        <button class="btn primary wide" id="btnGenerate">🎲 Générer une carte aléatoire</button>
       </section>
     </aside>
   </div>

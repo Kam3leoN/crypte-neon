@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.api.json",
     "test:campaign": "tsx scripts/check-campaign.ts",
+    "test:editor": "tsx scripts/check-editor-toggle.ts",
+    "test": "npm run test:campaign && npm run test:editor",
     "db:migrate": "tsx scripts/migrate.ts"
   },
   "engines": { "node": ">=20" },

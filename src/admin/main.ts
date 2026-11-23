@@ -113,12 +113,44 @@ for (const [id, k] of ov) {
 $<HTMLInputElement>('zoom').oninput = (e) => editor.setTile(Number((e.target as HTMLInputElement).value));
 $('btnUndo').onclick = () => editor.undo();
 $('btnRedo').onclick = () => editor.redo();
+const canvasWrap = $('canvasWrap');
 document.querySelectorAll<HTMLElement>('[data-resize]').forEach((b) => {
   b.onclick = () => {
     const [side, d] = b.dataset.resize!.split(':') as ['top' | 'bottom' | 'left' | 'right', string];
-    if (!editor.resize(side, Number(d) as 1 | -1)) toast('Taille limite atteinte', true);
+    if (!editor.resize(side, Number(d) as 1 | -1, canvasWrap)) toast('Taille limite atteinte', true);
   };
 });
+
+// Pan de la carte (fenêtre fixe) : espace + glisser, ou clic molette.
+let spaceDown = false;
+let pan: { x: number; y: number; sl: number; st: number } | null = null;
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && !(e.target as HTMLElement).matches('input, textarea, select')) {
+    e.preventDefault();
+    spaceDown = true;
+  }
+});
+window.addEventListener('keyup', (e) => {
+  if (e.code === 'Space') spaceDown = false;
+});
+canvasWrap.addEventListener('pointerdown', (e) => {
+  if (e.button === 1 || (e.button === 0 && spaceDown)) {
+    e.preventDefault();
+    e.stopPropagation(); // avant le canvas (capture) : pas de peinture pendant le pan
+    canvasWrap.setPointerCapture(e.pointerId);
+    canvasWrap.classList.add('panning');
+    pan = { x: e.clientX, y: e.clientY, sl: canvasWrap.scrollLeft, st: canvasWrap.scrollTop };
+  }
+}, true);
+canvasWrap.addEventListener('pointermove', (e) => {
+  if (!pan) return;
+  canvasWrap.scrollLeft = pan.sl - (e.clientX - pan.x);
+  canvasWrap.scrollTop = pan.st - (e.clientY - pan.y);
+});
+const endPan = () => { pan = null; canvasWrap.classList.remove('panning'); };
+canvasWrap.addEventListener('pointerup', endPan);
+canvasWrap.addEventListener('pointercancel', endPan);
+canvasWrap.addEventListener('auxclick', (e) => { if (e.button === 1) e.preventDefault(); });
 
 // propriétés
 const fName = $<HTMLInputElement>('fName');
@@ -265,19 +297,35 @@ $('btnImport').onclick = () => {
   });
 };
 
-$('btnSeed').onclick = () => { $<HTMLInputElement>('gSeed').value = String(Math.floor(Math.random() * 100000)); };
-$('btnGenerate').onclick = () => {
+function rollSeed(): number {
+  const n = Math.floor(Math.random() * 100000);
+  $<HTMLInputElement>('gSeed').value = String(n);
+  return n;
+}
+
+function generateRandomMap(): void {
+  if ($<HTMLInputElement>('gNewSeed').checked) rollSeed();
   const W = Math.max(7, Math.min(25, Number($<HTMLInputElement>('gW').value) || 11));
   const H = Math.max(10, Math.min(300, Number($<HTMLInputElement>('gH').value) || 22));
   const seed = Number($<HTMLInputElement>('gSeed').value) || 1;
-  const diff = DIFFICULTY[$<HTMLSelectElement>('gDiff').value];
+  const diff = DIFFICULTY[$<HTMLSelectElement>('gDiff').value] ?? DIFFICULTY.moyen;
   const scale = H / 22;
-  const map = generate({ ...diff, W, H, seed, branches: Math.round(diff.branches * scale), bats: Math.round((diff.bats ?? 0) * scale), traps: Math.round((diff.traps ?? 0) * scale) });
+  const map = generate({
+    ...diff, W, H, seed,
+    branches: Math.round(diff.branches * scale),
+    bats: Math.round((diff.bats ?? 0) * scale),
+    traps: Math.round((diff.traps ?? 0) * scale),
+  });
   if (!map) { toast('Génération impossible avec ces paramètres, change la graine.', true); return; }
   editor.setMap(map);
-  $('canvasWrap').scrollTo({ top: 1e6 });
-  toast('Carte générée (Ctrl+Z pour annuler)');
-};
+  // Vue en bas près du départ — la fenêtre reste fixe, on scroll dans le wrap.
+  requestAnimationFrame(() => canvasWrap.scrollTo({ top: canvasWrap.scrollHeight, left: 0 }));
+  toast('Carte aléatoire générée — personnalise-la (Ctrl+Z pour annuler)');
+}
+
+$('btnSeed').onclick = () => { rollSeed(); };
+$('btnGenerate').onclick = () => generateRandomMap();
+$('btnGenQuick').onclick = () => generateRandomMap();
 
 // ---------- test en direct ----------
 const testCanvas = $<HTMLCanvasElement>('testCanvas');
@@ -344,6 +392,7 @@ window.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); editor.redo(); return; }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); void save(); return; }
   if (e.key === 't' || e.key === 'T') { openTest(); return; }
+  if (e.key === 'g' || e.key === 'G') { e.preventDefault(); generateRandomMap(); return; }
   const tool = TOOLS.find((t) => t.key === e.key);
   if (tool && !e.ctrlKey && !e.metaKey) selectTool(tool.c);
 });

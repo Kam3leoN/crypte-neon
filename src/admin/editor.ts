@@ -72,6 +72,8 @@ export class LevelEditor {
   private ctx: Ctx;
   private raf = 0;
   private dpr = Math.min(2, window.devicePixelRatio || 1);
+  /** Décalage viewport (cases) pour ancrer la vue après agrandissement. */
+  private scrollAnchor: { wrap: HTMLElement; dx: number; dy: number } | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -81,19 +83,24 @@ export class LevelEditor {
     this.ctx = canvas.getContext('2d')!;
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     canvas.addEventListener('pointerdown', (e) => {
+      if (e.button === 1) return; // molette = pan géré par le wrap
       const cell = this.cellAt(e);
       if (!cell) return;
       canvas.setPointerCapture(e.pointerId);
       this.snapshot();
       this.painting = e.button === 2 ? '#' : this.tool;
-      this.paint(cell, this.painting);
+      // Clic simple : si l'outil est déjà sur la case → on l'enlève (sol).
+      this.paint(cell, this.painting, { toggle: e.button !== 2 });
     });
     canvas.addEventListener('pointermove', (e) => {
       const cell = this.cellAt(e);
       const changed = cell?.[0] !== this.hover?.[0] || cell?.[1] !== this.hover?.[1];
       this.hover = cell;
       if (changed) { this.onHover(cell); this.requestDraw(); }
-      if (this.painting && cell && this.painting !== 'P' && this.painting !== 'E') this.paint(cell, this.painting);
+      // Glisser : on pose sans basculer (évite d'effacer au passage).
+      if (this.painting && cell && this.painting !== 'P' && this.painting !== 'E') {
+        this.paint(cell, this.painting, { toggle: false });
+      }
     });
     const stop = () => { this.painting = null; };
     canvas.addEventListener('pointerup', stop);
@@ -128,8 +135,15 @@ export class LevelEditor {
     this.map[y] = row.slice(0, x) + c + row.slice(x + 1);
   }
 
-  private paint([x, y]: [number, number], c: string): void {
-    if (this.map[y][x] === c) return;
+  private paint([x, y]: [number, number], c: string, opts: { toggle?: boolean } = {}): void {
+    const cur = this.map[y][x];
+    // Re-clic sur le même objet / piège / pointe / chauve → sol (toggle).
+    if (opts.toggle && cur === c && c !== ' ' && c !== '#' && c !== 'P' && c !== 'E') {
+      this.setCell(x, y, ' ');
+      this.changed(true);
+      return;
+    }
+    if (cur === c) return;
     if (c === 'P' || c === 'E') {
       // éléments uniques : on déplace l'existant
       this.map = this.map.map((r) => r.split(c).join(' '));
@@ -160,8 +174,11 @@ export class LevelEditor {
     this.changed(true);
   }
 
-  /** side: top/bottom/left/right ; delta: +1 ajoute une ligne/colonne de murs, -1 en retire une. */
-  resize(side: 'top' | 'bottom' | 'left' | 'right', delta: 1 | -1): boolean {
+  /**
+   * side: top/bottom/left/right ; delta: +1 ajoute une ligne/colonne de murs, -1 en retire une.
+   * La fenêtre de vue reste fixe : on ancre le scroll pour que le contenu déjà visible ne « saute » pas.
+   */
+  resize(side: 'top' | 'bottom' | 'left' | 'right', delta: 1 | -1, wrap?: HTMLElement | null): boolean {
     const vertical = side === 'top' || side === 'bottom';
     const size = vertical ? this.H : this.W;
     const next = size + delta;
@@ -173,6 +190,12 @@ export class LevelEditor {
     if (side === 'left') m = m.map((r) => (delta > 0 ? `#${r}` : r.slice(1)));
     if (side === 'right') m = m.map((r) => (delta > 0 ? `${r}#` : r.slice(0, -1)));
     this.map = m;
+    if (wrap) {
+      // Ajout/retrait côté haut/gauche → décale le contenu ; on compense le scroll.
+      const dx = side === 'left' ? delta * this.tile : 0;
+      const dy = side === 'top' ? delta * this.tile : 0;
+      this.scrollAnchor = { wrap, dx, dy };
+    }
     this.changed(true);
     return true;
   }
@@ -196,6 +219,12 @@ export class LevelEditor {
     if (this.canvas.width !== wpx * this.dpr || this.canvas.height !== hpx * this.dpr) {
       this.canvas.width = wpx * this.dpr; this.canvas.height = hpx * this.dpr;
       this.canvas.style.width = `${wpx}px`; this.canvas.style.height = `${hpx}px`;
+    }
+    if (this.scrollAnchor) {
+      const { wrap, dx, dy } = this.scrollAnchor;
+      this.scrollAnchor = null;
+      wrap.scrollLeft = Math.max(0, wrap.scrollLeft + dx);
+      wrap.scrollTop = Math.max(0, wrap.scrollTop + dy);
     }
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.fillStyle = '#0c0818';
